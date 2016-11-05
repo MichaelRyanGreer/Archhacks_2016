@@ -1,0 +1,6 @@
+Watch In Motion to do list:
+
+Finish hardware ptototype
+Implement Tropo system
+Web dev for watchInMotion.org
+**Incomplete
