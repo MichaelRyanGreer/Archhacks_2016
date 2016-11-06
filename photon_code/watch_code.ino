@@ -1,8 +1,12 @@
-include "Adafruit-CAP1188.h"
+#include "Adafruit-CAP1188.h"
+#include "Particle.h"
 
 // This #include statement was automatically added by the Particle IDE.
 #include "neopixel/neopixel.h"
 #include "application.h"
+
+
+#include "math.h"
 
 SYSTEM_MODE(AUTOMATIC);
 
@@ -52,40 +56,46 @@ void setup() {
     cap.setSensitivity(2);
 }
 
-int loopDelay = 10;
-int capCutOffVoltage = 110;
+float loopDelay = 10;
+int capCutOffVoltage = 90;
 int capOffCounter = 0;
-int capOffCountLimit = 10;
+int capOffCounterLimit = 10;
 int greenButton = 0;
 int redButton = 0;
 int redButtonCounter = 0;
-int redButtonCounterLimit = 4;
+int redButtonCounterLimit = 10;
 float zAccel = 0;
 float yAccel = 0;
 float xAccel = 0;
 float accelMagnitude = 0;
-float accelLimit = .6; //Max is .866
+float accelLimit = .23; //Max is .866
 int state1Timer = 0;
-int state1TimerLimit = 4/(loopDelay/1000);
+float state1TimerLimit = 4/(loopDelay/1000);
 int state2Timer = 0;
-int state2TimerLimit = 10/(loopDelay/1000);
+float state2TimerLimit = 10/(loopDelay/1000);
 	
 void loop() {
+    Serial.println(state);
 	//Update Constants
 	findAccel();
-	greenButton = !sw1;
-	redButton = !sw0;
+	greenButton = !digitalRead(sw1);
+	redButton = !digitalRead(sw0);
 	
     // Finite state machine
     switch (state) {
         case 0:
             //Not Worn
+                                    Serial.println(cap.touchedAnalog(0));
+            
             if(cap.touchedAnalog(0) < capCutOffVoltage){
+
                 state = 0;
             }
             else{
+
                 state = 1;
             }
+
              break;
         case 1:
             //Worn Safe
@@ -95,7 +105,7 @@ void loop() {
 					state1Timer = 0;	
 			}
 			
-			if(redButton){
+			if(redButton == 1){
 				capOffCounter = 0;
 				if(redButtonCounter < redButtonCounterLimit){
 					redButtonCounter += 1;
@@ -104,6 +114,7 @@ void loop() {
 					redButtonCounter = 0;
 					capOffCounter = 0;
 					state = 2;
+					break;
 				}
             }
 			if(accelMagnitude > accelLimit){
@@ -111,7 +122,7 @@ void loop() {
 				capOffCounter = 0;
 				state = 2;
 			}
-			else if(greenButton){
+			else if(greenButton == 1){
 				redButtonCounter = 0;
 				capOffCounter = 0;
                 state = 5;
@@ -132,43 +143,47 @@ void loop() {
             break;
         case 2:
 			//Check Response
+            
+            if(state2Timer == 0){
+			    LEDRingRedOn();
+            }
+				   		
+			buzz(true);
 
-			LEDRingRed();
-			buzz();
-			
 			state2Timer += 1;
 
-			if(red){
-				state 3;	
+			if((redButton == 1) && (state2Timer > 50)){
+			    buzz(true);
+			   	state2Timer = 0;
+				state = 3;	
 			}
 			else if(state2Timer > state2TimerLimit){
 				state2Timer = 0;
+				buzz(true);
 				state = 3;	
 			}
-			else if(green){
+			else if(greenButton == 1){
 				state2Timer = 0;
-				state = 1;	
+				buzz(false);
+			    LEDRingRedOff();
+				state = 1;
+				delay(150);
 			}
 			else{
 				state = 2;
 			}
             break;
         case 3:
-			//Alert
 			
-			//CODE TO SEND TEXTS
-			LEDRingRed();
-			buzz();
-			
+			Particle.publish("emergency",1); // Sends patient info as a POST to server
+
 			state = 4;
             break;
         case 4:
 			//Wait For Help
-			
-			LEDRingRed();
-			buzz();
-			
-			if(green){
+			if(greenButton == 1){
+			    buzz(false);
+			    LEDRingRedOff();
 				state = 1;
 			}
 			else{
@@ -188,21 +203,29 @@ void loop() {
 
 
 //Toggles the Buzzer on and off
-void buzz() {
-    tone(buzzPin,3000,0);
+void buzz(bool on) {
+    if(on == true){
+        tone(buzzPin,3000,0);
+    }
+    if(on == false){
+        noTone(buzzPin);
+    }
 }
 
 //Tests the LED Ring
-void LEDRingRed() {
-for (int i = 0; i<12; i++){
-    strip.setPixelColor(i,10,0,0);
-    strip.show();
-    delay(100);
-  }
-	for (int i = 0; i<12; i++){
-    strip.setPixelColor(i,0,0,0);
-    strip.show();
-  }
+void LEDRingRedOn() {
+    for (int i = 0; i<12; i++){
+        strip.setPixelColor(i,10,0,0);
+        strip.show();
+        delay(100);
+    }
+}
+
+void LEDRingRedOff() {
+    for (int i = 0; i<12; i++){
+        strip.setPixelColor(i,0,0,0);
+        strip.show();
+    }
 }
 
 void findAccel(){
@@ -215,34 +238,40 @@ void findAccel(){
 void displayTime() {
 
 	// Print the current Unix timestamp
-	time_t unixTime = Time.now();
-	int time =  (int)unixTime%31556926;
-		time = time%2629743;	
-		time = time%604800;
-		time = time%86400;
+	int unixTime = Time.now();
+	unixTime =  unixTime%31556926;
+	unixTime = unixTime%2629743;	
+	unixTime = unixTime%604800;
+	unixTime = unixTime%86400;
 	//Now time = num seconds into day
 	int hour = 0;
-	int min = 0;
-	hour = time/3600;
-	time = time%3600;	
-	min = time/60;
-	Serial.println("hour: " + hour + " min: " + min);
+	int minute = 0;
+	hour = unixTime/3600 + 7;
+	unixTime = unixTime%3600;	
+	minute = unixTime/60;
 
+
+			
+	hour = hour%12;
+	minute = ((minute+14)/5)%12;
+	
+    Serial.print("hour: ");
+	Serial.println(hour);
+	Serial.print("min: ");
+	Serial.println(minute);
+	
     strip.setPixelColor(hour,0,10,0);
     strip.show();
-    delay(100);
-	
-	for (int i = 0; i<12; i++){
-    	strip.setPixelColor(i,0,0,0);
-	    strip.show();
- 	}
-	
-	strip.setPixelColor(min,0,10,0);
+    delay(1000);
+	strip.setPixelColor(hour,0,0,0);
     strip.show();
-    delay(100);
+
 	
-	for (int i = 0; i<12; i++){
-    	strip.setPixelColor(i,0,0,0);
-	    strip.show();
- 	}
+	strip.setPixelColor(minute,0,0,10);
+    strip.show();
+    delay(1000);
+  	strip.setPixelColor(minute,0,0,0);
+    strip.show();
+ 	
 }
+
