@@ -5,6 +5,7 @@ Contributors:
 	Michael Greer
 
 About:
+
 	A wrist device that connects to a web server and is able to notify emergency contacts through Cisco Tropo
 	Uses Particle Photon to connect to WiFi
 	Webhooks send information to flask server on ec2 instance
@@ -16,6 +17,7 @@ About:
 
 
 Modes:
+
 	Not worn: 	When capacitive sensor does not detect wrist
 	Worn:		When capacitive sensor detects wrist
 	Alert:		Either when red button is pressed or accelerometer detects quick motion (while in Worn mode)
