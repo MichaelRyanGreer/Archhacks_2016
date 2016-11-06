@@ -33,6 +33,9 @@ float accel_threshhold = 0.65;
 
 int state = 0;
 
+IPAddress ip;
+String ipStr;
+
 void setup() {
     //Initializes pinmodes
     pinMode(buzzPin, OUTPUT);
@@ -54,6 +57,10 @@ void setup() {
 
     //Sets sensitivity from 1 to 7
     cap.setSensitivity(2);
+    
+    //Sets current ip
+    ip = WiFi.localIP();
+    ipStr = String(ip[0])+"."+String(ip[1])+"."+String(ip[2])+"."+String(ip[3]);
 }
 
 float loopDelay = 10;
@@ -75,7 +82,7 @@ int state2Timer = 0;
 float state2TimerLimit = 10/(loopDelay/1000);
 	
 void loop() {
-    Serial.println(state);
+    //Serial.println(state);
 	//Update Constants
 	findAccel();
 	greenButton = !digitalRead(sw1);
@@ -84,9 +91,7 @@ void loop() {
     // Finite state machine
     switch (state) {
         case 0:
-            //Not Worn
-                                    Serial.println(cap.touchedAnalog(0));
-            
+            // Not Worn
             if(cap.touchedAnalog(0) < capCutOffVoltage){
 
                 state = 0;
@@ -174,13 +179,13 @@ void loop() {
 			}
             break;
         case 3:
-			
-			Particle.publish("emergency",1); // Sends patient info as a POST to server
+            // Send info to server
+			Particle.publish("emergency",ipStr); // Sends patient info as a POST to server
 
 			state = 4;
             break;
         case 4:
-			//Wait For Help
+			// Wait For Help
 			if(greenButton == 1){
 			    buzz(false);
 			    LEDRingRedOff();
@@ -221,6 +226,7 @@ void LEDRingRedOn() {
     }
 }
 
+// Turns ring off
 void LEDRingRedOff() {
     for (int i = 0; i<12; i++){
         strip.setPixelColor(i,0,0,0);
@@ -228,6 +234,7 @@ void LEDRingRedOff() {
     }
 }
 
+// Finds the accelerometer vector
 void findAccel(){
 	zAccel = (float)analogRead(zPin)/4095-.5;
 	yAccel = (float)analogRead(yPin)/4095-.5;
@@ -235,6 +242,7 @@ void findAccel(){
 	accelMagnitude = sqrt(zAccel*zAccel+yAccel*yAccel+xAccel*xAccel);
 }
 
+// Displays the current time
 void displayTime() {
 
 	// Print the current Unix timestamp
@@ -252,7 +260,7 @@ void displayTime() {
 
 
 			
-	hour = hour%12;
+	hour = hour%12-1;
 	minute = ((minute+14)/5)%12;
 	
     Serial.print("hour: ");
@@ -274,4 +282,3 @@ void displayTime() {
     strip.show();
  	
 }
-
