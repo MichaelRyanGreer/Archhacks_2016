@@ -1,16 +1,46 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, url_for
 from flask.ext.pymongo import PyMongo
 from urllib import request as httprequest
 from urllib.parse import urlencode
+
+import crypt
+import phonenumbers
 
 app = Flask(__name__)
 mongo = PyMongo(app)
 
 base_query = "https://api.tropo.com/1.0/sessions?action=create&token=644f69544d416f434350744b4274486f72596b55796f715555684a534d464762737a55727352774e526b5476&"
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
-	return render_template('home.html')
+	print("definitely recieved a request")
+	error = "Welcome!"
+	if request.method == 'POST':
+		patient_name = request.form['patient_name']
+		patient_pass = request.form['patient_pass']
+		new_phone = request.form['new_phone']
+		
+		#I would validate the phone number but it's 4AM I'm sorry :(
+
+		#print(new_phone)
+		#try:
+		#	z = phonenumbers.parse(new_phone)
+		#	valid_phone = phonenumbers.format_number(z, phonenumbers.PhoneNumberFormat.E164)[1:]
+		#	print(valid_phone)
+		#except:
+		#	error = "Invalid Phone Number"
+		#	return render_template('home.html',error=error)
+
+		patient = mongo.db.patients.find_one({'name' : patient_name})
+		if patient is None:
+			error = "Incorrect Password or Username"
+		elif crypt.crypt(patient_pass,patient['pass']) == patient['pass']:
+			mongo.db.patients.update({'name' : patient_name},{'$push' : {'contacts' : {'number' : new_phone}}},True)
+			error="Success!"
+		else:
+			error = "Incorrect Password or Username"
+
+	return render_template('home.html',error=error)
 
 @app.route('/api', methods=['GET', 'POST'])
 def api():

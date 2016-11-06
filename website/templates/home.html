@@ -4,6 +4,24 @@
 <!--a class="waves-effect waves-light btn">Log In</a-->
 <!--a class="waves-effect waves-light btn">Sign Up</a-->
 
+<div>
+<form action="/" method="POST">
+	{{error}}
 
+	<br/>
 
+	<label for="patient_name">What's your name?</label>
+	<input id="patient_name" name="patient_name" type="text"/>
+
+	<label for="patient_pass">Your password:</label>
+	<input id="patient_pass" name="patient_pass" type="password"/>
+
+	<label for="new_phone">Your new contact number:</label>
+	<input id="new_phone" name="new_phone" type="text"/>
+
+	<br/>
+
+	<input type="submit" value="Submit!"></input>
+</form>
+</div>
 {% endblock %}
