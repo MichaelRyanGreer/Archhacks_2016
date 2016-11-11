@@ -1,9 +1,11 @@
 ***WINNER OF THE "BEST DATA DRIVEN APP USING CISCO SPARK/TROPO" AT ARCHHACKS 2016***
 
+https://devpost.com/software/watch-in-motion
+
 Contributors:
-	Jack Leshem
-	Thomas Kelly
-	Daniel Pollak
+	Jack Leshem,
+	Thomas Kelly,
+	Daniel Pollak,
 	Michael Greer
 
 About:
